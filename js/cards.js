@@ -1,6 +1,8 @@
 import { rankLabel } from './pokdeng.js';
 export const FACE_EMOJI = { 11: '💂', 12: '👸', 13: '🤴' };
-const SUIT_EMOJI = { s: '♠️', h: '♥️', d: '♦️', c: '♣️' };
+// ไม่มี variation selector เพื่อให้ browser วาดเป็น classic suit glyph
+// ซึ่งควบคุมขนาดและสีได้แม่นกว่า emoji
+const SUIT_EMOJI = { s: '♠', h: '♥', d: '♦', c: '♣' };
 const RED = new Set(['h', 'd']);
 const PIPS = {
   2:[[2,1],[2,7]], 3:[[2,1],[2,4],[2,7]], 4:[[1,1],[3,1],[1,7],[3,7]], 5:[[1,1],[3,1],[2,4],[1,7],[3,7]],
@@ -13,9 +15,9 @@ function front(card) {
   const suit = SUIT_EMOJI[card.s]; const color = RED.has(card.s) ? 'red' : 'blk';
   for (const position of ['tl', 'br']) { const corner = document.createElement('div'); corner.className = `cnr ${position} ${color}`; corner.innerHTML = `<b>${rankLabel(card.r)}</b><i>${suit}</i>`; el.append(corner); }
   const center = document.createElement('div');
-  if (card.r === 1) { center.className = 'c-ace'; center.textContent = suit; }
-  else if (card.r >= 11) { center.className = 'c-face-frame'; center.innerHTML = `<span class="fsuit">${suit}</span><span class="femoji">${FACE_EMOJI[card.r]}</span><span class="fsuit fflip">${suit}</span>`; }
-  else { center.className = 'c-pips'; for (const [column, row] of PIPS[card.r]) { const pip = document.createElement('span'); pip.style.gridColumn = column; pip.style.gridRow = row; if (row > 4) pip.classList.add('pflip'); pip.textContent = suit; center.append(pip); } }
+  if (card.r === 1) { center.className = `c-ace ${color}`; center.textContent = suit; }
+  else if (card.r >= 11) { center.className = `c-face-frame ${color}`; center.innerHTML = `<span class="fsuit">${suit}</span><span class="femoji">${FACE_EMOJI[card.r]}</span><span class="fsuit fflip">${suit}</span>`; }
+  else { center.className = `c-pips ${color}`; for (const [column, row] of PIPS[card.r]) { const pip = document.createElement('span'); pip.style.gridColumn = column; pip.style.gridRow = row; if (row > 4) pip.classList.add('pflip'); pip.textContent = suit; center.append(pip); } }
   el.append(center); return el;
 }
 export function renderCard(card, { size = 'md', faceUp = true } = {}) {
