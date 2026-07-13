@@ -1,171 +1,37 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Education Green Public Company Limited</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
-          integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA=="
-          crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <script src="script.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ป๊อกเด้งออนไลน์ 🃏</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
-    <!-- ======== Header & Navigation ======== -->
-    <header>
-        <nav>
-            <a href="#" class="logo">Education Green</a>
-            <ul>
-                <li><a href="#about">About Us</a></li>
-                <li><a href="#courses">Courses</a></li>
-                <li><a href="#lms-features">LMS System</a></li>
-                <li><a href="#contact">Contact</a></li>
-            </ul>
-        </nav>
-    </header>
-
-    <!-- ======== Hero Section ======== -->
-    <section id="hero" class="page">
-        <div class="hero-content">
-            <h1>Unlock Your Learning Journey to Success</h1>
-            <p>We are committed to providing high-quality education for a sustainable future.</p>
-            <a href="#courses" class="cta-button">Explore All Courses</a>
-        </div>
+  <header id="hdr">
+    <div class="hdr-brand">🃏 ป๊อกเด้ง</div>
+    <div id="hdr-room" class="hidden"><span id="hdr-code" title="รหัสห้อง"></span><button id="btn-copy" title="ก็อปลิงก์ชวนเพื่อน">📋</button></div>
+    <button id="btn-sound" title="เปิด/ปิดเสียง">🔊</button>
+  </header>
+  <main id="screen-landing">
+    <section class="landing-card">
+      <h1>🃏 ป๊อกเด้งออนไลน์</h1>
+      <p class="sub">เล่นกับเพื่อนด้วยชิปเสมือน — ไม่ใช่เงินจริง</p>
+      <label for="inp-name">ชื่อของคุณ</label><input id="inp-name" maxlength="12" placeholder="เช่น ต้น" autocomplete="off">
+      <label>เลือกตัวแทน</label><div id="avatar-grid"></div>
+      <button id="btn-create" class="btn-primary">สร้างห้องใหม่ (เป็นเจ้ามือ)</button>
+      <div class="join-row"><input id="inp-code" maxlength="6" placeholder="รหัสห้อง 6 ตัว" autocomplete="off"><button id="btn-join" class="btn-secondary">เข้าห้อง</button></div>
+      <p id="landing-error" class="error hidden"></p>
     </section>
-
-    <!-- ======== About Us ======== -->
-    <section id="about" class="content-section page">
-        <div class="container">
-            <h2>About Us</h2>
-            <p class="reveal-on-scroll">
-                Education Green was founded with a vision to revolutionize the education industry.  
-                We believe everyone deserves access to modern, high-quality learning opportunities.  
-                Our team consists of experienced educators and technologists  
-                dedicated to creating the best learning experiences for you.
-            </p>
-        </div>
+  </main>
+  <main id="screen-table" class="hidden">
+    <section id="table">
+      <div id="dealer-zone"></div>
+      <div id="table-center"><div id="timer-ring" class="hidden"><span id="timer-num"></span></div><div id="table-status">รอเริ่มเกม…</div><div id="reaction-bar"></div></div>
+      <div id="seats"></div>
     </section>
-
-    <!-- ======== Courses Section ======== -->
-    <section id="courses" class="content-section dark-bg page">
-        <div class="container">
-            <h2 class="reveal-on-scroll">Featured Courses</h2>
-            <div class="course-carousel">
-                <button class="carousel-btn prev" aria-label="Previous courses"><i class="fas fa-chevron-left"></i></button>
-                <div class="course-track">
-                    <div class="course-card reveal-on-scroll">
-                        <img src="https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-                             alt="Digital Marketing Course">
-                        <h3>Digital Marketing 101</h3>
-                        <p>Learn the essentials of online marketing—from SEO and SEM to social media marketing.</p>
-                    </div>
-                    <div class="course-card reveal-on-scroll">
-                        <img src="https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-                             alt="Programming Course">
-                        <h3>Programming Fundamentals</h3>
-                        <p>Begin your journey as a developer with clear, practical lessons that build real skills.</p>
-                    </div>
-                    <div class="course-card reveal-on-scroll">
-                        <img src="https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-                             alt="Project Management Course">
-                        <h3>Modern Project Management</h3>
-                        <p>Master Agile tools and techniques to deliver projects effectively and efficiently.</p>
-                    </div>
-                </div>
-                <button class="carousel-btn next" aria-label="Next courses"><i class="fas fa-chevron-right"></i></button>
-            </div>
-        </div>
-    </section>
-
-    <!-- ======== LMS Features ======== -->
-    <section id="lms-features" class="content-section page">
-        <div class="container">
-            <h2 class="reveal-on-scroll">Key LMS Features</h2>
-            <div class="feature-grid">
-                <div class="feature-card reveal-on-scroll">
-                    <h3>Easy Course Management</h3>
-                    <p>Create and manage course content, videos, and quizzes through an intuitive dashboard.</p>
-                </div>
-                <div class="feature-card reveal-on-scroll">
-                    <h3>Progress Tracking</h3>
-                    <p>Instructors and learners can track progress and performance in real-time.</p>
-                </div>
-                <div class="feature-card reveal-on-scroll">
-                    <h3>Virtual Classroom</h3>
-                    <p>Supports live teaching sessions and real-time interaction through built-in video conferencing tools.</p>
-                </div>
-                <div class="feature-card reveal-on-scroll">
-                    <h3>Analytics & Reporting</h3>
-                    <p>Generate in-depth reports to evaluate and enhance teaching quality.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- ======== Contact Section ======== -->
-    <section id="contact" class="content-section page">
-        <div class="container">
-            <h2 class="reveal-on-scroll">Contact Us</h2>
-            <div class="contact-wrapper">
-                <div class="contact-info reveal-on-scroll">
-                    <h3>Contact Information</h3>
-                    <p>If you’d like more information about our courses or LMS platform, feel free to reach out anytime.</p>
-                    <p><strong>Email:</strong> contact@educationgreen.co.th</p>
-                    <p><strong>Phone:</strong> +66 2 123 4567</p>
-                    <p><strong>Address:</strong> 123 Green Tower Building, Sukhumvit Road, Bangkok 10110</p>
-                </div>
-                <form class="contact-form reveal-on-scroll">
-                    <h3>Send Us a Message</h3>
-                    <div class="form-group">
-                        <input type="text" id="name" name="name" required>
-                        <label for="name">Full Name</label>
-                    </div>
-                    <div class="form-group">
-                        <input type="email" id="email" name="email" required>
-                        <label for="email">Email</label>
-                    </div>
-                    <div class="form-group">
-                        <textarea id="message" name="message" rows="4" required></textarea>
-                        <label for="message">Message</label>
-                    </div>
-                    <button type="submit" class="cta-button">Send Message</button>
-                </form>
-            </div>
-        </div>
-    </section>
-
-    <!-- ======== Footer ======== -->
-    <footer class="page">
-        <div class="container">
-            <p>&copy; 2024 Education Green Public Company Limited. All rights reserved.</p>
-        </div>
-    </footer>
-
-    <!-- ======== Mobile Navigation (App-like) ======== -->
-    <nav id="mobile-nav">
-        <a href="#about" class="mobile-nav-item">
-            <i class="fas fa-info-circle"></i>
-            <span>About</span>
-        </a>
-        <a href="#courses" class="mobile-nav-item">
-            <i class="fas fa-book-open"></i>
-            <span>Courses</span>
-        </a>
-        <a href="#hero" class="mobile-nav-item">
-            <i class="fas fa-home"></i>
-            <span>Home</span>
-        </a>
-        <a href="#lms-features" class="mobile-nav-item">
-            <i class="fas fa-cogs"></i>
-            <span>LMS</span>
-        </a>
-        <a href="#contact" class="mobile-nav-item">
-            <i class="fas fa-envelope"></i>
-            <span>Contact</span>
-        </a>
-    </nav>
-
+    <div id="action-bar"></div>
+  </main>
+  <div id="modal-summary" class="modal hidden"></div><div id="modal-settings" class="modal hidden"></div><div id="toasts"></div>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -1,0 +1,47 @@
+{
+  "rules": {
+    "rooms": {
+      "$room": {
+        "meta": {
+          ".read": "auth != null",
+          ".write": "auth != null && ((!data.exists() && newData.child('hostUid').val() === auth.uid) || data.child('hostUid').val() === auth.uid || (newData.child('hostUid').val() === auth.uid && data.child('hostUid').exists() && root.child('rooms').child($room).child('players').child(data.child('hostUid').val()).child('lastSeen').val() < now - 60000))"
+        },
+        "players": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.uid === root.child('rooms').child($room).child('meta').child('hostUid').val()",
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            "chips": {
+              ".validate": "newData.isNumber() && (auth.uid === root.child('rooms').child($room).child('meta').child('hostUid').val() || (!data.exists() && newData.val() === 1000) || newData.val() === data.val() || (newData.val() === data.val() + 1000 && data.val() < root.child('rooms').child($room).child('meta').child('minBet').val()))"
+            }
+          }
+        },
+        "reactions": { ".read": "auth != null", ".write": "auth != null" },
+        "rounds": {
+          ".write": "auth != null && auth.uid === root.child('rooms').child($room).child('meta').child('hostUid').val()",
+          "$round": {
+            "deck": { ".read": "auth != null && auth.uid === root.child('rooms').child($room).child('meta').child('hostUid').val()" },
+            "bets": {
+              ".read": "auth != null",
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('rooms').child($room).child('meta').child('state').val() === 'betting'",
+                ".validate": "newData.isNumber() && newData.val() >= root.child('rooms').child($room).child('meta').child('minBet').val() && newData.val() <= root.child('rooms').child($room).child('meta').child('maxBet').val() && newData.val() <= root.child('rooms').child($room).child('players').child($uid).child('chips').val() && root.child('rooms').child($room).child('players').child($uid).child('joinedRound').val() <= root.child('rooms').child($room).child('meta').child('round').val()"
+              }
+            },
+            "hands": {
+              ".read": "auth != null && (auth.uid === root.child('rooms').child($room).child('meta').child('hostUid').val() || root.child('rooms').child($room).child('meta').child('state').val() === 'reveal' || root.child('rooms').child($room).child('meta').child('state').val() === 'settled')",
+              "$uid": { ".read": "auth != null && (auth.uid === $uid || root.child('rooms').child($room).child('rounds').child($round).child('revealed').child($uid).val() === true)" }
+            },
+            "revealed": { ".read": "auth != null" },
+            "actions": {
+              ".read": "auth != null",
+              "$uid": { ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('rooms').child($room).child('meta').child('state').val() === 'acting'", ".validate": "newData.val() === 'hit' || newData.val() === 'stay'" }
+            },
+            "results": { ".read": "auth != null" },
+            "dealerDrew": { ".read": "auth != null" }
+          }
+        }
+      }
+    }
+  }
+}
