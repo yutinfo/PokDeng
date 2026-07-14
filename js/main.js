@@ -1,12 +1,115 @@
 import { authReady, watchClock, F, db, uid } from './firebase.js';
 import { createRoom, joinRoom, normalizeCode, startPresence } from './room.js';
 
-export const AVATARS=['😀','😎','🥳','🤠','😇','🤓','😜','🥸','🐱','🐶','🦊','🐸','🐼','🐯','🦁','🐵','🐷','🐙','🦄','👻','🐨','🐰','🦉','🤖'];
-const $=(selector)=>document.querySelector(selector);let selected=localStorage.getItem('pd_avatar')||AVATARS[0];
-function avatars(){const grid=$('#avatar-grid');grid.innerHTML='';for(const avatar of AVATARS){const button=document.createElement('button');button.type='button';button.textContent=avatar;button.classList.toggle('sel',avatar===selected);button.onclick=()=>{selected=avatar;grid.querySelectorAll('button').forEach((item)=>item.classList.toggle('sel',item===button));};grid.append(button);}}
-function error(message=''){const el=$('#landing-error');el.textContent=message;el.classList.toggle('hidden',!message);}function profile(){const name=$('#inp-name').value.trim();if(!name){error('กรุณาใส่ชื่อก่อน');return null;}localStorage.setItem('pd_name',name);localStorage.setItem('pd_avatar',selected);return{name,avatar:selected};}
-export async function enterRoom(code){history.replaceState(null,'',`?room=${code}`);$('#hdr-code').textContent=code;$('#hdr-room').classList.remove('hidden');$('#screen-landing').classList.add('hidden');$('#screen-table').classList.remove('hidden');startPresence(code);const game=await import('./game.js');game.enterGame(code);}
-async function create(){const me=profile();if(!me)return;$('#btn-create').disabled=true;try{await enterRoom(await createRoom(me));}catch(e){error(e.message);$('#btn-create').disabled=false;}}
-async function join(){const me=profile();if(!me)return;const code=normalizeCode($('#inp-code').value);if(code.length!==6){error('รหัสห้องต้องมี 6 ตัวอักษร');return;}$('#btn-join').disabled=true;try{await joinRoom(code,me);await enterRoom(code);}catch(e){error(e.message);$('#btn-join').disabled=false;}}
-async function boot(){avatars();$('#inp-name').value=localStorage.getItem('pd_name')||'';$('#btn-create').onclick=create;$('#btn-join').onclick=join;$('#btn-copy').onclick=async()=>{try{await navigator.clipboard.writeText(location.href);$('#btn-copy').textContent='✅';setTimeout(()=>$('#btn-copy').textContent='📋',1200);}catch{error('ก็อปลิงก์ไม่สำเร็จ');}};await authReady();watchClock();const fromUrl=normalizeCode(new URLSearchParams(location.search).get('room'));if(fromUrl.length===6){$('#inp-code').value=fromUrl;const name=localStorage.getItem('pd_name');if(name&&(await F.get(F.ref(db,`rooms/${fromUrl}/players/${uid()}`))).exists()){await joinRoom(fromUrl,{name,avatar:selected});await enterRoom(fromUrl);}}}
-boot().catch((e)=>error(`เชื่อมต่อ Firebase ไม่สำเร็จ: ${e.message}`));
+export const AVATARS = [
+  '😀', '😎', '🥳', '🤠', '😇', '🤓', '😜', '🥸',
+  '🐱', '🐶', '🦊', '🐸', '🐼', '🐯', '🦁', '🐵',
+  '🐷', '🐙', '🦄', '👻', '🐨', '🐰', '🦉', '🤖',
+];
+
+const $ = (selector) => document.querySelector(selector);
+let selected = localStorage.getItem('pd_avatar') || AVATARS[0];
+
+function avatars() {
+  const grid = $('#avatar-grid');
+  grid.innerHTML = '';
+  for (const avatar of AVATARS) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = avatar;
+    button.setAttribute('aria-label', `เลือกตัวแทน ${avatar}`);
+    button.classList.toggle('sel', avatar === selected);
+    button.onclick = () => {
+      selected = avatar;
+      grid.querySelectorAll('button').forEach((item) => item.classList.toggle('sel', item === button));
+    };
+    grid.append(button);
+  }
+}
+
+function error(message = '') {
+  const el = $('#landing-error');
+  el.textContent = message;
+  el.classList.toggle('hidden', !message);
+}
+
+function profile() {
+  const name = $('#inp-name').value.trim();
+  if (!name) {
+    error('กรุณาใส่ชื่อก่อน');
+    return null;
+  }
+  localStorage.setItem('pd_name', name);
+  localStorage.setItem('pd_avatar', selected);
+  return { name, avatar: selected };
+}
+
+export async function enterRoom(code) {
+  history.replaceState(null, '', `?room=${code}`);
+  $('#hdr-code').textContent = code;
+  $('#hdr-room').classList.remove('hidden');
+  $('#screen-landing').classList.add('hidden');
+  $('#screen-table').classList.remove('hidden');
+  startPresence(code);
+  const game = await import('./game.js');
+  game.enterGame(code);
+}
+
+async function create() {
+  const me = profile();
+  if (!me) return;
+  $('#btn-create').disabled = true;
+  try {
+    await enterRoom(await createRoom(me));
+  } catch (e) {
+    error(e.message);
+    $('#btn-create').disabled = false;
+  }
+}
+
+async function join() {
+  const me = profile();
+  if (!me) return;
+  const code = normalizeCode($('#inp-code').value);
+  if (code.length !== 6) {
+    error('รหัสห้องต้องมี 6 ตัวอักษร');
+    return;
+  }
+  $('#btn-join').disabled = true;
+  try {
+    await joinRoom(code, me);
+    await enterRoom(code);
+  } catch (e) {
+    error(e.message);
+    $('#btn-join').disabled = false;
+  }
+}
+
+async function boot() {
+  avatars();
+  $('#inp-name').value = localStorage.getItem('pd_name') || '';
+  $('#btn-create').onclick = create;
+  $('#btn-join').onclick = join;
+  $('#btn-copy').onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(location.href);
+      $('#btn-copy').textContent = '✅';
+      setTimeout(() => { $('#btn-copy').textContent = '📋'; }, 1200);
+    } catch {
+      error('ก็อปลิงก์ไม่สำเร็จ');
+    }
+  };
+  await authReady();
+  watchClock();
+  const fromUrl = normalizeCode(new URLSearchParams(location.search).get('room'));
+  if (fromUrl.length === 6) {
+    $('#inp-code').value = fromUrl;
+    const name = localStorage.getItem('pd_name');
+    if (name && (await F.get(F.ref(db, `rooms/${fromUrl}/players/${uid()}`))).exists()) {
+      await joinRoom(fromUrl, { name, avatar: selected });
+      await enterRoom(fromUrl);
+    }
+  }
+}
+
+boot().catch((e) => error(`เชื่อมต่อ Firebase ไม่สำเร็จ: ${e.message}`));
