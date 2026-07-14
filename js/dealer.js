@@ -19,21 +19,13 @@ export async function revealAndSettle(S) {
     await F.update(F.ref(db, `${roomPath(S)}/meta`), { state: 'reveal', turnDeadline: null });
     await new Promise((resolve) => setTimeout(resolve, REVEAL_HOLD_MS));
 
-    // Rules intentionally do not grant a read on rooms/{code} itself. Read only
-    // the permitted child paths, otherwise a completed round remains stuck in reveal.
-    const round = S.meta.round;
-    const [metaSnap, playersSnap, betsSnap, handsSnap] = await Promise.all([
-      F.get(F.ref(db, `${roomPath(S)}/meta`)),
-      F.get(F.ref(db, `${roomPath(S)}/players`)),
-      F.get(F.ref(db, `${roundPath(S)}/bets`)),
-      F.get(F.ref(db, `${roundPath(S)}/hands`)),
-    ]);
-    const meta = metaSnap.val();
-    const players = playersSnap.val() || {};
-    const bets = betsSnap.val() || {};
-    const hands = handsSnap.val() || {};
-    if (!meta || meta.state === 'settled' || meta.hostUid !== S.uid) return;
-
+    // The host already subscribes to every path needed for a round. Settling
+    // from that local, live state avoids a second Firebase read that can be
+    // denied by a more restrictive deployment of RTDB rules.
+    const current = latest;
+    if (!current?.amHost || current.meta.state === 'settled') return;
+    const { meta, players, bets, hands } = current;
+    const round = meta.round;
     const host = meta.hostUid;
     if (!hands[host] || Object.keys(bets).some((id) => !hands[id])) return;
     const playerChips = {};
