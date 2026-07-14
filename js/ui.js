@@ -4,7 +4,15 @@ let actionHandler = () => {};
 export function onAction(handler) { actionHandler = handler; }
 export function toast(message) { const el = document.createElement('div'); el.className = 'toast'; el.textContent = message; $('#toasts').append(el); setTimeout(() => el.remove(), 2500); }
 export function setStatus(text) { $('#table-status').textContent = text; }
-export function showSummary(html) { const modal = $('#modal-summary'); modal.innerHTML = `<div class="modal-card">${html}</div>`; modal.classList.remove('hidden'); modal.onclick = (event) => { if (event.target === modal) hideModals(); }; }
+export function showSummary(html) {
+  const modal = $('#modal-summary');
+  modal.innerHTML = `<div class="modal-card">${html}</div>`;
+  modal.querySelectorAll('[data-action]').forEach((button) => {
+    button.onclick = () => actionHandler(button.dataset.action);
+  });
+  modal.classList.remove('hidden');
+  modal.onclick = (event) => { if (event.target === modal) hideModals(); };
+}
 export function hideModals() { $('#modal-summary').classList.add('hidden'); $('#modal-settings').classList.add('hidden'); }
 function button(label, action, payload = null, klass = 'btn-secondary') { const el = document.createElement('button'); el.className = klass; el.textContent = label; el.onclick = () => actionHandler(action, payload); return el; }
 const LABEL = { lobby:'ล็อบบี้ — รอเจ้ามือเริ่มเกม', betting:'วางเดิมพันได้เลย!', dealing:'กำลังแจกไพ่…', acting:'ผู้เล่นเลือก จั่ว หรือ อยู่', dealerTurn:'ตาเจ้ามือตัดสินใจ', reveal:'เปิดไพ่!', settled:'จบรอบ — ดูผลได้เลย' };
