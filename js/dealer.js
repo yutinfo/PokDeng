@@ -12,5 +12,56 @@ async function startBetting(S){if(!['lobby','settled'].includes(S.meta.state))re
 async function deal(S){if(S.meta.state!=='betting')return;const bettors=Object.keys(S.bets);if(!bettors.length)return;const deck=shuffle(newDeck()),hands={};for(const id of bettors)hands[id]=[deck.pop(),deck.pop()];const host=S.meta.hostUid;hands[host]=[deck.pop(),deck.pop()];const revealed={};for(const id of bettors)if(isPok(hands[id]))revealed[id]=true;if(isPok(hands[host]))revealed[host]=true;await F.update(F.ref(db,roomPath(S)),{[`rounds/${S.meta.round}/deck`]:deck,[`rounds/${S.meta.round}/hands`]:hands,[`rounds/${S.meta.round}/revealed`]:Object.keys(revealed).length?revealed:null,'meta/state':'dealing','meta/turnDeadline':null,'meta/phaseStartedAt':serverNow()});setTimeout(()=>void maybeAdvance(),950);}
 async function thirdCards(S){const pending=Object.keys(S.actions).filter((id)=>S.actions[id]==='hit'&&(S.hands[id]?.length??2)<3);if(!pending.length||!S.deck?.length)return false;const deck=[...S.deck],updates={};for(const id of pending){if(!deck.length)break;updates[`${roundPath(S)}/hands/${id}/2`]=deck.pop();}updates[`${roundPath(S)}/deck`]=deck;await F.update(F.ref(db),updates);return true;}
 async function dealerHit(S){if(S.meta.state!=='dealerTurn'||!S.deck?.length)return;const host=S.meta.hostUid;if((S.hands[host]?.length??2)>=3)return;const deck=[...S.deck];await F.update(F.ref(db),{[`${roundPath(S)}/hands/${host}/2`]:deck.pop(),[`${roundPath(S)}/deck`]:deck,[`${roundPath(S)}/dealerDrew`]:true});await revealAndSettle(S);}
-export async function revealAndSettle(S){if(!S?.amHost||settling||S.meta.state==='settled')return;settling=true;try{await F.update(F.ref(db,`${roomPath(S)}/meta`),{state:'reveal',turnDeadline:null});await new Promise((resolve)=>setTimeout(resolve,REVEAL_HOLD_MS));const snapshot=await F.get(F.ref(db,roomPath(S)));const room=snapshot.val();if(!room||room.meta.state==='settled'||room.meta.hostUid!==S.uid)return;const n=room.meta.round,host=room.meta.hostUid,bets=room.rounds?.[n]?.bets||{},hands=room.rounds?.[n]?.hands||{};if(!hands[host]||Object.keys(bets).some((id)=>!hands[id]))return;const chips={};for(const id of Object.keys(bets))chips[id]=room.players[id]?.chips??0;const settled=settleRound({bets,hands,dealerHand:hands[host],playerChips:chips});const updates={'meta/state':'settled','meta/turnDeadline':null};for(const [id,delta]of Object.entries(settled.playerDeltas)){updates[`players/${id}/chips`]=(room.players[id]?.chips??0)+delta;updates[`rounds/${n}/results/${id}`]={delta,rankName:settled.evals[id].rankName,deng:settled.evals[id].deng,points:settled.evals[id].points};}updates[`players/${host}/chips`]=(room.players[host]?.chips??0)+settled.dealerDelta;updates[`rounds/${n}/results/${host}`]={delta:settled.dealerDelta,rankName:settled.dealerEval.rankName,deng:settled.dealerEval.deng,points:settled.dealerEval.points};await F.update(F.ref(db,roomPath(S)),updates);}catch(error){console.error('settle failed',error);}finally{settling=false;}}
+export async function revealAndSettle(S) {
+  if (!S?.amHost || settling || S.meta.state === 'settled') return;
+  settling = true;
+  try {
+    await F.update(F.ref(db, `${roomPath(S)}/meta`), { state: 'reveal', turnDeadline: null });
+    await new Promise((resolve) => setTimeout(resolve, REVEAL_HOLD_MS));
+
+    // Rules intentionally do not grant a read on rooms/{code} itself. Read only
+    // the permitted child paths, otherwise a completed round remains stuck in reveal.
+    const round = S.meta.round;
+    const [metaSnap, playersSnap, betsSnap, handsSnap] = await Promise.all([
+      F.get(F.ref(db, `${roomPath(S)}/meta`)),
+      F.get(F.ref(db, `${roomPath(S)}/players`)),
+      F.get(F.ref(db, `${roundPath(S)}/bets`)),
+      F.get(F.ref(db, `${roundPath(S)}/hands`)),
+    ]);
+    const meta = metaSnap.val();
+    const players = playersSnap.val() || {};
+    const bets = betsSnap.val() || {};
+    const hands = handsSnap.val() || {};
+    if (!meta || meta.state === 'settled' || meta.hostUid !== S.uid) return;
+
+    const host = meta.hostUid;
+    if (!hands[host] || Object.keys(bets).some((id) => !hands[id])) return;
+    const playerChips = {};
+    for (const id of Object.keys(bets)) playerChips[id] = players[id]?.chips ?? 0;
+    const settled = settleRound({ bets, hands, dealerHand: hands[host], playerChips });
+
+    const updates = { 'meta/state': 'settled', 'meta/turnDeadline': null };
+    for (const [id, delta] of Object.entries(settled.playerDeltas)) {
+      updates[`players/${id}/chips`] = (players[id]?.chips ?? 0) + delta;
+      updates[`rounds/${round}/results/${id}`] = {
+        delta,
+        rankName: settled.evals[id].rankName,
+        deng: settled.evals[id].deng,
+        points: settled.evals[id].points,
+      };
+    }
+    updates[`players/${host}/chips`] = (players[host]?.chips ?? 0) + settled.dealerDelta;
+    updates[`rounds/${round}/results/${host}`] = {
+      delta: settled.dealerDelta,
+      rankName: settled.dealerEval.rankName,
+      deng: settled.dealerEval.deng,
+      points: settled.dealerEval.points,
+    };
+    await F.update(F.ref(db, roomPath(S)), updates);
+  } catch (error) {
+    console.error('settle failed', error);
+  } finally {
+    settling = false;
+  }
+}
 async function maybeAdvance(){const S=latest;if(!S?.amHost||busy||!['dealing','acting','dealerTurn','reveal'].includes(S.meta.state))return;busy=true;try{const now=serverNow();if(S.meta.state==='dealing'){if(now-(S.meta.phaseStartedAt||0)<900)return;const host=S.meta.hostUid;if(!S.hands[host])return;const bettors=Object.keys(S.bets),dealerPok=Boolean(S.revealed[host]),allPok=bettors.length>0&&bettors.every((id)=>S.revealed[id]);if(dealerPok||allPok)await revealAndSettle(S);else await F.update(F.ref(db,`${roomPath(S)}/meta`),{state:'acting',turnDeadline:now+ACT_MS});}else if(S.meta.state==='acting'){await thirdCards(S);const bettors=Object.keys(S.bets),answered=bettors.every((id)=>S.revealed[id]||S.actions[id]),expired=S.meta.turnDeadline&&now>=S.meta.turnDeadline,pending=bettors.some((id)=>S.actions[id]==='hit'&&(S.hands[id]?.length??2)<3);if((answered||expired)&&!pending)await F.update(F.ref(db,`${roomPath(S)}/meta`),{state:'dealerTurn',turnDeadline:serverNow()+DEALER_MS});}else if(S.meta.state==='dealerTurn'){if(S.meta.turnDeadline&&now>=S.meta.turnDeadline)await revealAndSettle(S);}else if(S.meta.state==='reveal'&&!S.results[S.meta.hostUid])await revealAndSettle(S);}catch(error){console.error('dealer engine',error);}finally{busy=false;}}
