@@ -5,7 +5,7 @@ import { dealerTick, dealerCommand } from './dealer.js';
 export const S = {
   code: null,
   uid: null,
-  meta: { hostUid: null, state: 'lobby', round: 0, minBet: 10, maxBet: 200, turnDeadline: null },
+  meta: { hostUid: null, state: 'lobby', round: 0, minBet: 10, maxBet: 200, autoBet: 0, turnDeadline: null },
   players: {},
   bets: {},
   actions: {},
@@ -258,8 +258,14 @@ async function handleAction(action, payload) {
         if (S.amHost) {
           const minBet = Math.max(1, Math.floor(payload.minBet));
           const maxBet = Math.max(minBet, Math.floor(payload.maxBet));
-          await F.update(F.ref(db, `rooms/${code}/meta`), { minBet, maxBet });
-          ui.toast(`ตั้งเดิมพัน ${minBet}–${maxBet} แล้ว`);
+          const requestedAutoBet = Math.floor(Number(payload.autoBet));
+          const autoBet = Number.isFinite(requestedAutoBet) ? requestedAutoBet : 0;
+          if (autoBet < 0 || (autoBet > 0 && (autoBet < minBet || autoBet > maxBet))) {
+            ui.toast(`เดิมพันอัตโนมัติต้องเป็น 0 หรืออยู่ระหว่าง ${minBet}–${maxBet}`);
+            return;
+          }
+          await F.update(F.ref(db, `rooms/${code}/meta`), { minBet, maxBet, autoBet });
+          ui.toast(autoBet ? `ตั้งเดิมพันอัตโนมัติ ${autoBet} ชิป/รอบ แล้ว` : `ตั้งเดิมพัน ${minBet}–${maxBet} แล้ว`);
         }
         break;
       case 'transfer-host':

@@ -305,6 +305,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   font-size: 15px;
   text-align: center;
 }
+.settings-note { margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.4; }
 .mrow { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; }
 .mcol { display: flex; flex-direction: column; gap: 8px; }
 .mwide { width: 100%; text-align: left; }

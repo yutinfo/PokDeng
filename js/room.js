@@ -21,7 +21,7 @@ export async function createRoom(profile) {
     const code = randomCode(); const roomRef = F.ref(db, `rooms/${code}`);
     if ((await F.get(F.child(roomRef, 'meta'))).exists()) continue;
     await F.update(roomRef, {
-      meta: { createdAt: serverNow(), hostUid: uid(), state: 'lobby', round: 0, minBet: 10, maxBet: 200, turnDeadline: null },
+      meta: { createdAt: serverNow(), hostUid: uid(), state: 'lobby', round: 0, minBet: 10, maxBet: 200, autoBet: 0, turnDeadline: null },
       [`players/${uid()}`]: playerEntry(profile),
     });
     return code;

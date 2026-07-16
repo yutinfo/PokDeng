@@ -62,9 +62,9 @@ export function setStatus(text) { $('#table-status').textContent = text; }
 
 function statusText(S) {
   const label = LABEL[S.meta.state] || S.meta.state;
-  if (S.meta.state === 'lobby') return label;
   const pot = Object.values(S.bets).reduce((sum, bet) => sum + bet, 0);
   const parts = [`รอบ ${S.meta.round}`, label];
+  if (S.meta.autoBet > 0) parts.push(`อัตโนมัติ ${S.meta.autoBet} ชิป`);
   if (pot > 0) parts.push(`กองกลาง 🔵 ${pot.toLocaleString()}`);
   return parts.join(' · ');
 }
@@ -400,6 +400,8 @@ export function showSettings(S) {
     <h2>⚙️ ตั้งค่าห้อง</h2>
     <label class="mlabel">เดิมพันขั้นต่ำ <input id="set-min" type="number" min="1" value="${S.meta.minBet}"></label>
     <label class="mlabel">เดิมพันสูงสุด <input id="set-max" type="number" min="1" value="${S.meta.maxBet}"></label>
+    <label class="mlabel">เดิมพันอัตโนมัติ/รอบ <input id="set-auto" type="number" min="0" value="${S.meta.autoBet || 0}"></label>
+    <p class="settings-note">ใส่ 0 เพื่อปิด · จำนวนที่ตั้งเป็นชิปเสมือน และต้องอยู่ระหว่างขั้นต่ำ–สูงสุด</p>
     <div class="mrow">
       <button class="btn-primary" id="set-save">บันทึก</button>
       <button class="btn-secondary" id="set-cancel">ยกเลิก</button>
@@ -410,6 +412,7 @@ export function showSettings(S) {
     actionHandler('save-settings', {
       minBet: Number(m.querySelector('#set-min').value),
       maxBet: Number(m.querySelector('#set-max').value),
+      autoBet: Number(m.querySelector('#set-auto').value),
     });
     hideModals();
   };
