@@ -277,6 +277,14 @@ async function handleAction(action, payload) {
           ui.toast('คุณเป็นเจ้ามือแล้ว — รอบที่ค้างถูกยกเลิก');
         }
         break;
+      case 'invite':
+        try {
+          await navigator.clipboard.writeText(location.href);
+          ui.toast('ก็อปลิงก์แล้ว ส่งให้เพื่อนได้เลย 📋');
+        } catch {
+          ui.toast(`รหัสห้อง: ${code}`);
+        }
+        break;
       case 'react':
         if (Date.now() - lastReactAt >= 1000) {
           lastReactAt = Date.now();

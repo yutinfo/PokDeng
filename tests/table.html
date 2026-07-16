@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ทดสอบโต๊ะทุก state (mock — ไม่ใช้ Firebase)</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    #states { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px; background: var(--panel); position: sticky; top: 0; z-index: 30; }
+    #states button { font-size: 13px; padding: 6px 10px; border: 1px solid rgba(255,255,255,.2); border-radius: 8px; background: rgba(255,255,255,.06); color: var(--text); cursor: pointer; }
+    #states button.on { background: var(--accent); color: #08121f; border-color: transparent; }
+    #log { color: var(--muted); font-size: 12px; padding: 4px 16px; }
+  </style>
+</head>
+<body>
+  <div id="states"></div>
+  <div id="log">คลิกปุ่มใน dock ได้ — action จะถูก log ที่นี่</div>
+  <main id="screen-table">
+    <section id="table">
+      <div id="opponents"></div>
+      <div id="table-center">
+        <div id="timer-ring" class="hidden" role="timer"><span id="timer-num"></span></div>
+        <div id="table-status">…</div>
+        <div id="reaction-bar"></div>
+      </div>
+      <div id="my-dock" class="hidden"></div>
+    </section>
+  </main>
+  <div id="modal-summary" class="modal hidden"></div>
+  <div id="modal-settings" class="modal hidden"></div>
+  <div id="toasts"></div>
+
+  <script type="module">
+    import * as ui from '../js/ui.js';
+
+    const C = (str) => {
+      const s = str.slice(-1);
+      const rt = str.slice(0, -1);
+      return { r: { A: 1, J: 11, Q: 12, K: 13 }[rt] ?? Number(rt), s };
+    };
+    const H = (...strs) => strs.map(C);
+    const P = (name, avatar, chips, extra = {}) => ({
+      name, avatar, chips, online: true, lastSeen: Date.now(), joinedAt: Math.random(),
+      rebuys: 0, joinedRound: 1, ...extra,
+    });
+
+    const base = () => ({
+      code: 'TEST42', uid: 'me',
+      meta: { hostUid: 'host', state: 'lobby', round: 0, minBet: 10, maxBet: 200, turnDeadline: null },
+      players: { host: P('Yut', '🤠', 2450), me: P('naruto', '😎', 1000), p2: P('มายด์', '🐱', 760) },
+      bets: {}, actions: {}, hands: {}, handCounts: {}, revealed: {}, results: {},
+      deck: null, dealerDrew: false, amHost: false, amParticipant: true, hostStale: false,
+    });
+
+    const inRound = (S) => {
+      S.meta.round = 3;
+      S.bets = { me: 50, p2: 20 };
+      return S;
+    };
+
+    const STATES = {
+      'lobby ผู้เล่น': () => base(),
+      'lobby เจ้ามือ (คนเดียว)': () => {
+        const S = base();
+        S.uid = 'host'; S.amHost = true;
+        delete S.players.me; delete S.players.p2;
+        return S;
+      },
+      'betting ยังไม่วาง': () => {
+        const S = base();
+        S.meta.state = 'betting'; S.meta.round = 3; S.bets = { p2: 20 };
+        return S;
+      },
+      'betting วางแล้ว': () => {
+        const S = inRound(base());
+        S.meta.state = 'betting';
+        return S;
+      },
+      'betting เจ้ามือ': () => {
+        const S = inRound(base());
+        S.uid = 'host'; S.amHost = true; S.meta.state = 'betting';
+        return S;
+      },
+      'acting ตาเราเลือก': () => {
+        const S = inRound(base());
+        S.meta.state = 'acting';
+        S.hands = { me: H('3s', 'Jd') };
+        S.handCounts = { me: 2, p2: 2, host: 2 };
+        S.actions = {};
+        return S;
+      },
+      'acting จั่วแล้ว + เพื่อนป๊อก': () => {
+        const S = inRound(base());
+        S.meta.state = 'acting';
+        S.hands = { me: H('3s', 'Jd', '5c'), p2: H('4h', '5h') };
+        S.handCounts = { me: 3, p2: 2, host: 2 };
+        S.actions = { me: 'hit' };
+        S.revealed = { p2: true };
+        return S;
+      },
+      'dealerTurn (เราเป็นเจ้ามือ)': () => {
+        const S = inRound(base());
+        S.uid = 'host'; S.amHost = true;
+        S.meta.state = 'dealerTurn';
+        S.bets = { me: 50, p2: 20 };
+        S.hands = { host: H('9h', '8d'), me: H('3s', 'Jd', '5c'), p2: H('4h', '5h') };
+        S.handCounts = { host: 2, me: 3, p2: 2 };
+        S.actions = { me: 'hit', p2: 'stay' };
+        S.revealed = { p2: true };
+        return S;
+      },
+      'reveal (ยังไม่มีผล)': () => {
+        const S = inRound(base());
+        S.meta.state = 'reveal';
+        S.hands = { host: H('5h', 'Ac'), me: H('3s', 'Jd', 'Js'), p2: H('4h', '5h') };
+        S.handCounts = { host: 2, me: 3, p2: 2 };
+        return S;
+      },
+      'settled': () => {
+        const S = inRound(base());
+        S.meta.state = 'settled';
+        S.hands = { host: H('5h', 'Ac'), me: H('3s', 'Jd', 'Js'), p2: H('4h', '5h') };
+        S.handCounts = { host: 2, me: 3, p2: 2 };
+        S.results = {
+          host: { delta: 30, rankName: '6 แต้ม', deng: 1, points: 6 },
+          me: { delta: -50, rankName: '3 แต้ม', deng: 1, points: 3 },
+          p2: { delta: 40, rankName: 'ป๊อกเก้า', deng: 2, points: 9 },
+        };
+        return S;
+      },
+      'เข้ากลางรอบ (spectator)': () => {
+        const S = inRound(base());
+        S.meta.state = 'acting';
+        S.amParticipant = false;
+        S.players.me.joinedRound = 4;
+        S.bets = { p2: 20 };
+        S.hands = {};
+        S.handCounts = { p2: 2, host: 2 };
+        return S;
+      },
+      'เจ้ามือหลุด (takeover)': () => {
+        const S = inRound(base());
+        S.meta.state = 'acting';
+        S.hands = { me: H('3s', 'Jd') };
+        S.handCounts = { me: 2, p2: 2, host: 2 };
+        S.hostStale = true;
+        S.players.host.online = false;
+        return S;
+      },
+    };
+
+    ui.onAction((action, payload) => {
+      document.querySelector('#log').textContent = `action: ${action} ${payload != null ? JSON.stringify(payload) : ''}`;
+      ui.toast(`action: ${action}`);
+    });
+    ui.initReactions();
+
+    const bar = document.querySelector('#states');
+    for (const name of Object.keys(STATES)) {
+      const b = document.createElement('button');
+      b.textContent = name;
+      b.onclick = () => {
+        bar.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+        const S = STATES[name]();
+        ui.renderAll(S);
+        ui.updateTimer(S.meta.state === 'acting' ? 18000 : S.meta.state === 'dealerTurn' ? 32000 : null, S.meta.state === 'dealerTurn' ? 45000 : 30000);
+      };
+      bar.append(b);
+    }
+    bar.querySelector('button').click();
+  </script>
+</body>
+</html>

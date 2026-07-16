@@ -9,29 +9,45 @@
 <body>
   <header id="hdr">
     <div class="hdr-brand">🃏 ป๊อกเด้ง</div>
-    <div id="hdr-room" class="hidden"><span id="hdr-code" title="รหัสห้อง"></span><button id="btn-copy" title="ก็อปลิงก์ชวนเพื่อน">📋</button></div>
-    <button id="btn-sound" title="เปิด/ปิดเสียง">🔊</button>
+    <div id="hdr-room" class="hidden">
+      <span id="hdr-code" title="รหัสห้อง"></span>
+      <button id="btn-copy" title="ก็อปลิงก์ชวนเพื่อน" aria-label="ก็อปลิงก์ชวนเพื่อน">📋</button>
+    </div>
+    <button id="btn-sound" title="เปิด/ปิดเสียง" aria-label="เปิดหรือปิดเสียง">🔊</button>
   </header>
+
   <main id="screen-landing">
     <section class="landing-card">
       <h1>🃏 ป๊อกเด้งออนไลน์</h1>
       <p class="sub">เล่นกับเพื่อนด้วยชิปเสมือน — ไม่ใช่เงินจริง</p>
-      <label for="inp-name">ชื่อของคุณ</label><input id="inp-name" maxlength="12" placeholder="เช่น ต้น" autocomplete="off">
-      <label>เลือกตัวแทน</label><div id="avatar-grid"></div>
+      <label for="inp-name">ชื่อของคุณ</label>
+      <input id="inp-name" maxlength="12" placeholder="เช่น ต้น" autocomplete="off">
+      <label>เลือกตัวแทน</label>
+      <div id="avatar-grid"></div>
       <button id="btn-create" class="btn-primary">สร้างห้องใหม่ (เป็นเจ้ามือ)</button>
-      <div class="join-row"><input id="inp-code" maxlength="6" placeholder="รหัสห้อง 6 ตัว" autocomplete="off"><button id="btn-join" class="btn-secondary">เข้าห้อง</button></div>
+      <div class="join-row">
+        <input id="inp-code" maxlength="6" placeholder="รหัสห้อง 6 ตัว" autocomplete="off">
+        <button id="btn-join" class="btn-secondary">เข้าห้อง</button>
+      </div>
       <p id="landing-error" class="error hidden"></p>
     </section>
   </main>
+
   <main id="screen-table" class="hidden">
     <section id="table">
-      <div id="dealer-zone"></div>
-      <div id="table-center"><div id="timer-ring" class="hidden"><span id="timer-num"></span></div><div id="table-status">รอเริ่มเกม…</div><div id="reaction-bar"></div></div>
-      <div id="seats"></div>
+      <div id="opponents"></div>
+      <div id="table-center">
+        <div id="timer-ring" class="hidden" role="timer"><span id="timer-num"></span></div>
+        <div id="table-status">รอเริ่มเกม…</div>
+        <div id="reaction-bar"></div>
+      </div>
+      <div id="my-dock" class="hidden"></div>
     </section>
-    <div id="action-bar"></div>
   </main>
-  <div id="modal-summary" class="modal hidden"></div><div id="modal-settings" class="modal hidden"></div><div id="toasts"></div>
+
+  <div id="modal-summary" class="modal hidden"></div>
+  <div id="modal-settings" class="modal hidden"></div>
+  <div id="toasts"></div>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
