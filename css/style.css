@@ -125,7 +125,14 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 }
 
 /* --- แถวคู่แข่ง (ทุกคนที่ไม่ใช่เรา เจ้ามืออยู่หัวแถว) --- */
-#opponents { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+#opponents {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  justify-items: center;
+  gap: 12px 10px;
+  min-height: 168px;
+}
 .seat {
   width: 158px;
   background: rgba(0, 0, 0, .18);
@@ -140,10 +147,17 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   transition: border-color .3s;
 }
 .seat.dealer-seat { background: rgba(0, 0, 0, .32); width: 178px; }
+.seat.dealer-seat { grid-column: 2; grid-row: 1; }
 .seat.offline { opacity: .45; }
+.seat.active-turn, #my-dock.active-turn {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(79, 157, 250, .18), 0 0 20px rgba(79, 157, 250, .28);
+}
 .seat.result-win { border-color: var(--win); }
 .seat.result-lose { border-color: rgba(242, 109, 109, .65); }
 .seat .cards { display: flex; gap: 4px; min-height: 94px; align-items: center; }
+.seat .cards.cards-3 { gap: 3px; min-height: 68px; }
+.seat .cards.cards-3 .cardflip.md { width: 48px; height: 67px; --cfs: .55; }
 .seat.ghost {
   border: 2px dashed rgba(255, 255, 255, .3);
   background: transparent;
@@ -246,6 +260,8 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 #my-dock.result-lose { border-color: rgba(242, 109, 109, .65); }
 #my-dock .cards { display: flex; gap: 6px; align-items: center; }
 #my-dock .cards:empty { display: none; }
+#my-dock .cards.cards-3 { gap: 4px; }
+#my-dock .cards.cards-3 .cardflip.lg { width: 72px; height: 101px; --cfs: .82; }
 .dock-info { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
 .dock-info .who { font-size: 15.5px; font-weight: 700; }
 .dock-info .badges { justify-content: flex-start; }
@@ -437,9 +453,12 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 @media (max-width: 640px) {
   #screen-table { padding: 8px; }
   #table { padding: 12px 10px; gap: 12px; }
-  .seat { width: 140px; }
-  .seat.dealer-seat { width: 156px; }
+  #opponents { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .seat { width: min(140px, 100%); }
+  .seat.dealer-seat { width: min(156px, 100%); grid-column: 1 / -1; grid-row: auto; }
+  .seat .cards.cards-3 .cardflip.md { width: 42px; height: 59px; --cfs: .48; }
   .cardflip.lg { width: 74px; height: 103px; --cfs: .84; }
+  #my-dock .cards.cards-3 .cardflip.lg { width: 62px; height: 87px; --cfs: .7; }
   #my-dock { gap: 10px; padding: 10px; }
   .dock-actions { margin-left: 0; width: 100%; justify-content: center; }
 }

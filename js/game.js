@@ -5,7 +5,7 @@ import { dealerTick, dealerCommand } from './dealer.js';
 export const S = {
   code: null,
   uid: null,
-  meta: { hostUid: null, state: 'lobby', round: 0, minBet: 10, maxBet: 200, autoBet: 0, turnDeadline: null },
+  meta: { hostUid: null, state: 'lobby', round: 0, minBet: 10, maxBet: 200, autoBet: 0, turnUid: null, turnOrder: null, turnDeadline: null },
   players: {},
   bets: {},
   actions: {},

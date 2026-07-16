@@ -11,7 +11,7 @@ export async function dealerCommand(action,payload,S){switch(action){case'start-
 async function startBetting(S) {
   if (!['lobby', 'settled'].includes(S.meta.state)) return;
   const next = S.meta.round + 1;
-  const updates = { 'meta/state': 'betting', 'meta/round': next, 'meta/turnDeadline': null, reactions: null };
+  const updates = { 'meta/state': 'betting', 'meta/round': next, 'meta/turnUid': null, 'meta/turnOrder': null, 'meta/turnDeadline': null, reactions: null };
   const old = next - KEEP_ROUNDS;
   if (old >= 1) updates[`rounds/${old}`] = null;
   await F.update(F.ref(db, roomPath(S)), updates);
@@ -27,7 +27,39 @@ async function startBetting(S) {
   }
   if (Object.keys(autoBets).length) await F.update(F.ref(db, roomPath(S)), autoBets);
 }
-async function deal(S){if(S.meta.state!=='betting')return;const bettors=Object.keys(S.bets);if(!bettors.length)return;const deck=shuffle(newDeck()),hands={};for(const id of bettors)hands[id]=[deck.pop(),deck.pop()];const host=S.meta.hostUid;hands[host]=[deck.pop(),deck.pop()];const revealed={};for(const id of bettors)if(isPok(hands[id]))revealed[id]=true;if(isPok(hands[host]))revealed[host]=true;await F.update(F.ref(db,roomPath(S)),{[`rounds/${S.meta.round}/deck`]:deck,[`rounds/${S.meta.round}/hands`]:hands,[`rounds/${S.meta.round}/revealed`]:Object.keys(revealed).length?revealed:null,'meta/state':'dealing','meta/turnDeadline':null,'meta/phaseStartedAt':serverNow()});setTimeout(()=>void maybeAdvance(),950);}
+function seatOrder(S, ids) {
+  return [...ids].sort((a, b) => (S.players[a]?.joinedAt || 0) - (S.players[b]?.joinedAt || 0));
+}
+
+function nextPlayer(S, afterId = null) {
+  const order = Array.isArray(S.meta.turnOrder) ? S.meta.turnOrder : seatOrder(S, Object.keys(S.bets));
+  const start = afterId == null ? 0 : Math.max(0, order.indexOf(afterId) + 1);
+  return order.slice(start).find((id) => S.players[id]?.online && S.bets[id] != null && !S.revealed[id] && !S.actions[id]) || null;
+}
+
+async function deal(S){
+  if(S.meta.state!=='betting')return;
+  const bettors=Object.keys(S.bets);
+  if(!bettors.length)return;
+  const deck=shuffle(newDeck()),hands={};
+  for(const id of bettors)hands[id]=[deck.pop(),deck.pop()];
+  const host=S.meta.hostUid;
+  hands[host]=[deck.pop(),deck.pop()];
+  const revealed={};
+  for(const id of bettors)if(isPok(hands[id]))revealed[id]=true;
+  if(isPok(hands[host]))revealed[host]=true;
+  await F.update(F.ref(db,roomPath(S)),{
+    [`rounds/${S.meta.round}/deck`]:deck,
+    [`rounds/${S.meta.round}/hands`]:hands,
+    [`rounds/${S.meta.round}/revealed`]:Object.keys(revealed).length?revealed:null,
+    'meta/state':'dealing',
+    'meta/turnOrder':seatOrder(S, bettors),
+    'meta/turnUid':null,
+    'meta/turnDeadline':null,
+    'meta/phaseStartedAt':serverNow(),
+  });
+  setTimeout(()=>void maybeAdvance(),950);
+}
 async function thirdCards(S){const pending=Object.keys(S.actions).filter((id)=>S.actions[id]==='hit'&&(S.hands[id]?.length??2)<3);if(!pending.length||!S.deck?.length)return false;const deck=[...S.deck],updates={};for(const id of pending){if(!deck.length)break;updates[`${roundPath(S)}/hands/${id}/2`]=deck.pop();}updates[`${roundPath(S)}/deck`]=deck;await F.update(F.ref(db),updates);return true;}
 async function dealerHit(S){if(S.meta.state!=='dealerTurn'||!S.deck?.length)return;const host=S.meta.hostUid;if((S.hands[host]?.length??2)>=3)return;const deck=[...S.deck];await F.update(F.ref(db),{[`${roundPath(S)}/hands/${host}/2`]:deck.pop(),[`${roundPath(S)}/deck`]:deck,[`${roundPath(S)}/dealerDrew`]:true});await revealAndSettle(S);}
 export async function revealAndSettle(S) {
@@ -74,4 +106,31 @@ export async function revealAndSettle(S) {
     settling = false;
   }
 }
-async function maybeAdvance(){const S=latest;if(!S?.amHost||busy||!['dealing','acting','dealerTurn','reveal'].includes(S.meta.state))return;busy=true;try{const now=serverNow();if(S.meta.state==='dealing'){if(now-(S.meta.phaseStartedAt||0)<900)return;const host=S.meta.hostUid;if(!S.hands[host])return;const bettors=Object.keys(S.bets),dealerPok=Boolean(S.revealed[host]),allPok=bettors.length>0&&bettors.every((id)=>S.revealed[id]);if(dealerPok||allPok)await revealAndSettle(S);else await F.update(F.ref(db,`${roomPath(S)}/meta`),{state:'acting',turnDeadline:now+ACT_MS});}else if(S.meta.state==='acting'){await thirdCards(S);const bettors=Object.keys(S.bets),answered=bettors.every((id)=>S.revealed[id]||S.actions[id]),expired=S.meta.turnDeadline&&now>=S.meta.turnDeadline,pending=bettors.some((id)=>S.actions[id]==='hit'&&(S.hands[id]?.length??2)<3);if((answered||expired)&&!pending)await F.update(F.ref(db,`${roomPath(S)}/meta`),{state:'dealerTurn',turnDeadline:serverNow()+DEALER_MS});}else if(S.meta.state==='dealerTurn'){if(S.meta.turnDeadline&&now>=S.meta.turnDeadline)await revealAndSettle(S);}else if(S.meta.state==='reveal'&&!S.results[S.meta.hostUid])await revealAndSettle(S);}catch(error){console.error('dealer engine',error);}finally{busy=false;}}
+async function maybeAdvance(){
+  const S=latest;
+  if(!S?.amHost||busy||!['dealing','acting','dealerTurn','reveal'].includes(S.meta.state))return;
+  busy=true;
+  try{
+    const now=serverNow();
+    if(S.meta.state==='dealing'){
+      if(now-(S.meta.phaseStartedAt||0)<900)return;
+      const host=S.meta.hostUid;
+      if(!S.hands[host])return;
+      const bettors=Object.keys(S.bets);
+      const first=nextPlayer(S);
+      if(S.revealed[host]||!first)await revealAndSettle(S);
+      else await F.update(F.ref(db,`${roomPath(S)}/meta`),{state:'acting',turnUid:first,turnDeadline:now+ACT_MS});
+    }else if(S.meta.state==='acting'){
+      const current=S.meta.turnUid;
+      const expired=S.meta.turnDeadline&&now>=S.meta.turnDeadline;
+      const finished=!current||S.revealed[current]||S.actions[current]||!S.players[current]?.online||expired;
+      if(!finished)return;
+      await thirdCards(S);
+      const next=nextPlayer(S,current);
+      if(next)await F.update(F.ref(db,`${roomPath(S)}/meta`),{turnUid:next,turnDeadline:serverNow()+ACT_MS});
+      else await F.update(F.ref(db,`${roomPath(S)}/meta`),{state:'dealerTurn',turnUid:S.meta.hostUid,turnDeadline:serverNow()+DEALER_MS});
+    }else if(S.meta.state==='dealerTurn'){
+      if(S.meta.turnDeadline&&now>=S.meta.turnDeadline)await revealAndSettle(S);
+    }else if(S.meta.state==='reveal'&&!S.results[S.meta.hostUid])await revealAndSettle(S);
+  }catch(error){console.error('dealer engine',error);}finally{busy=false;}
+}

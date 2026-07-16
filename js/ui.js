@@ -61,7 +61,11 @@ const LABEL = {
 export function setStatus(text) { $('#table-status').textContent = text; }
 
 function statusText(S) {
-  const label = LABEL[S.meta.state] || S.meta.state;
+  let label = LABEL[S.meta.state] || S.meta.state;
+  if (['acting', 'dealerTurn'].includes(S.meta.state) && S.meta.turnUid) {
+    const player = S.players[S.meta.turnUid];
+    if (player) label = `ตา ${S.meta.turnUid === S.meta.hostUid ? '🎩 ' : ''}${player.avatar} ${player.name}`;
+  }
   const pot = Object.values(S.bets).reduce((sum, bet) => sum + bet, 0);
   const parts = [`รอบ ${S.meta.round}`, label];
   if (S.meta.autoBet > 0) parts.push(`อัตโนมัติ ${S.meta.autoBet} ชิป`);
@@ -85,8 +89,8 @@ function visibleCards(S, playerId) {
 
 function handCards(S, playerId, size) {
   const wrap = document.createElement('div');
-  wrap.className = 'cards';
   const { cards, count } = visibleCards(S, playerId);
+  wrap.className = `cards cards-${count}`;
   for (let index = 0; index < count; index++) {
     const card = cards ? cards[index] : null;
     const key = `${S.meta.round}:${playerId}:${index}`;
@@ -151,7 +155,9 @@ function seatBadges(S, playerId, isDealer) {
   } else if (state === 'acting' && !isDealer && S.bets[playerId] != null) {
     const el = document.createElement('span');
     el.className = 'badge';
-    el.textContent = S.actions[playerId] ? (S.actions[playerId] === 'hit' ? 'จั่วแล้ว' : 'อยู่') : 'กำลังคิด…';
+    el.textContent = S.actions[playerId]
+      ? (S.actions[playerId] === 'hit' ? 'จั่วแล้ว' : 'อยู่')
+      : S.meta.turnUid === playerId ? 'กำลังคิด…' : 'รอตา';
     wrap.append(el);
   } else if (['reveal', 'settled'].includes(state)) {
     if (result) wrap.append(resultBadge(result));
@@ -175,6 +181,7 @@ function opponentSeat(S, playerId) {
   el.className = `seat${isDealer ? ' dealer-seat' : ''}`;
   el.dataset.pid = playerId;
   if (!player.online) el.classList.add('offline');
+  if (S.meta.turnUid === playerId && ['acting', 'dealerTurn'].includes(S.meta.state)) el.classList.add('active-turn');
   const result = S.results[playerId];
   if (['reveal', 'settled'].includes(S.meta.state) && result?.delta) {
     el.classList.add(result.delta > 0 ? 'result-win' : 'result-lose');
@@ -220,7 +227,7 @@ function renderOpponents(S) {
   const zone = $('#opponents');
   zone.innerHTML = '';
   const order = Object.keys(S.players)
-    .filter((id) => id !== S.uid)
+    .filter((id) => id !== S.uid && S.players[id].online)
     .sort((a, b) => {
       if (a === S.meta.hostUid) return -1;
       if (b === S.meta.hostUid) return 1;
@@ -228,7 +235,7 @@ function renderOpponents(S) {
     });
   for (const id of order) zone.append(opponentSeat(S, id));
   if (['lobby', 'betting'].includes(S.meta.state)) {
-    const free = MAX_PLAYERS - Object.keys(S.players).length;
+    const free = MAX_PLAYERS - Object.values(S.players).filter((player) => player.online).length;
     for (let i = 0; i < Math.min(2, free); i++) zone.append(ghostSeat());
   }
 }
@@ -241,7 +248,7 @@ function myTurn(S) {
     return state === 'dealerTurn' || (state === 'betting' && Object.keys(S.bets).length > 0);
   }
   if (state === 'betting') return S.amParticipant && S.bets[S.uid] == null;
-  if (state === 'acting') return S.bets[S.uid] != null && !S.revealed[S.uid] && !S.actions[S.uid];
+  if (state === 'acting') return S.meta.turnUid === S.uid;
   return false;
 }
 
@@ -299,7 +306,11 @@ function dockActions(S) {
     if (S.revealed[S.uid]) wrap.append(hint('คุณป๊อก! รอเปิดไพ่ 🎉'));
     else if (S.bets[S.uid] == null) wrap.append(hint('คุณไม่ได้เล่นรอบนี้'));
     else if (S.actions[S.uid]) wrap.append(hint('รอคนอื่นตัดสินใจ…'));
-    else wrap.append(button('🃏 จั่ว', 'hit', null, 'btn-primary'), button('✋ อยู่', 'stay'));
+    else if (S.meta.turnUid === S.uid) wrap.append(button('🃏 จั่ว', 'hit', null, 'btn-primary'), button('✋ อยู่', 'stay'));
+    else {
+      const current = S.players[S.meta.turnUid];
+      wrap.append(hint(current ? `รอ ${current.avatar} ${current.name} ตัดสินใจ…` : 'รอตาถัดไป…'));
+    }
   } else if (state === 'lobby') {
     wrap.append(hint('รอเจ้ามือเริ่มเกม…'));
   } else if (state === 'dealerTurn') {
@@ -328,6 +339,7 @@ function renderDock(S) {
   dock.dataset.pid = S.uid;
   dock.className = '';
   if (myTurn(S)) dock.classList.add('my-turn');
+  if (S.meta.turnUid === S.uid && ['acting', 'dealerTurn'].includes(S.meta.state)) dock.classList.add('active-turn');
   const result = S.results[S.uid];
   if (['reveal', 'settled'].includes(S.meta.state) && result?.delta) {
     dock.classList.add(result.delta > 0 ? 'result-win' : 'result-lose');

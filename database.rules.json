@@ -35,7 +35,7 @@
             "revealed": { ".read": "auth != null" },
             "actions": {
               ".read": "auth != null",
-              "$uid": { ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('rooms').child($room).child('meta').child('state').val() === 'acting'", ".validate": "newData.val() === 'hit' || newData.val() === 'stay'" }
+              "$uid": { ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('rooms').child($room).child('meta').child('state').val() === 'acting' && root.child('rooms').child($room).child('meta').child('turnUid').val() === auth.uid", ".validate": "newData.val() === 'hit' || newData.val() === 'stay'" }
             },
             "results": { ".read": "auth != null" },
             "dealerDrew": { ".read": "auth != null" }
