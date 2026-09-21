@@ -22,6 +22,17 @@ python3 -m http.server 8080
 node --test tests/
 ```
 
+## Deploy บน Vercel
+
+โปรเจกต์นี้ deploy เป็น static site บน Vercel ได้โดยไม่ต้อง build ไฟล์ `firebase-config.js` จะไม่ถูกส่งขึ้นไป
+หน้าเว็บจะดึง config จาก `/api/config` ซึ่งอ่านค่าจาก environment variables แทน
+
+1. Import repo นี้ใน Vercel (หรือ `vercel deploy --prod`)
+2. ตั้ง environment variables ใน Vercel: `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_DATABASE_URL`,
+   `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET`, `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_APP_ID`
+3. เพิ่มโดเมน `*.vercel.app` ของโปรเจกต์ใน Firebase Console > Authentication > Settings > Authorized domains
+4. Redeploy หนึ่งครั้งหลังตั้งค่า
+
 ## วิธีเล่น
 
 คนแรกสร้างห้องและเป็นเจ้ามือ จากนั้นแชร์ลิงก์หรือรหัส 6 ตัวให้เพื่อน ผู้เล่นเดิมพัน แล้วเจ้ามือแจกไพ่ ผู้เล่นเลือกจั่ว/อยู่ภายใน 30 วินาที ก่อนที่เจ้ามือจะตัดสินใจ ระบบคำนวณป๊อก เด้ง ตอง สเตรทฟลัช เรียง เซียน และผลชิปให้เอง

@@ -1,2 +1,5 @@
 firebase-config.js
 .DS_Store
+.vercel
+.env*.local
+node_modules

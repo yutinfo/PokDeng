@@ -1,8 +1,26 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getDatabase, ref, child, get, set, update, remove, onValue, off, onDisconnect, runTransaction, serverTimestamp, push, onChildAdded } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
-import { firebaseConfig } from '../firebase-config.js';
+// โหลด Firebase config ตามลำดับ:
+// 1. firebase-config.js ในเครื่อง (ไฟล์นี้ถูก gitignore ใช้ตอน dev)
+// 2. /api/config บน Vercel ซึ่งอ่านค่าจาก environment variables
+async function loadFirebaseConfig() {
+  try {
+    const mod = await import('../firebase-config.js');
+    if (mod.firebaseConfig && mod.firebaseConfig.apiKey) return mod.firebaseConfig;
+  } catch (e) {
+    // ไม่มีไฟล์ในเครื่อง ลองดึงจาก Vercel แทน
+  }
+  const res = await fetch('/api/config');
+  if (!res.ok) throw new Error('โหลด Firebase config ไม่สำเร็จ (' + res.status + ')');
+  const config = await res.json();
+  if (!config || !config.apiKey || !config.databaseURL) {
+    throw new Error('ยังไม่ได้ตั้งค่า Firebase ใน environment variables ของ Vercel');
+  }
+  return config;
+}
 
+const firebaseConfig = await loadFirebaseConfig();
 const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
 const auth = getAuth(app);
